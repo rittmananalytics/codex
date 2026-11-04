@@ -26,6 +26,8 @@ use tracing::instrument;
 pub struct ResponsesClient<T: HttpTransport> {
     session: EndpointSession<T>,
     sse_telemetry: Option<Arc<dyn SseTelemetry>>,
+    /// Wire fork: the provider speaks the Anthropic Messages API (crate::anthropic).
+    anthropic: bool,
 }
 
 #[derive(Default)]
@@ -43,7 +45,14 @@ impl<T: HttpTransport> ResponsesClient<T> {
         Self {
             session: EndpointSession::new(transport, provider, auth),
             sse_telemetry: None,
+            anthropic: false,
         }
+    }
+
+    /// Wire fork: translate to and from the Anthropic Messages API.
+    pub fn with_anthropic(mut self, anthropic: bool) -> Self {
+        self.anthropic = anthropic;
+        self
     }
 
     pub fn with_telemetry(
@@ -54,6 +63,7 @@ impl<T: HttpTransport> ResponsesClient<T> {
         Self {
             session: self.session.with_request_telemetry(request),
             sse_telemetry: sse,
+            anthropic: self.anthropic,
         }
     }
 
@@ -80,6 +90,28 @@ impl<T: HttpTransport> ResponsesClient<T> {
             compression,
             turn_state,
         } = options;
+        if self.anthropic {
+            let value = serde_json::to_value(&request)
+                .map_err(|e| ApiError::Stream(format!("failed to encode responses request: {e}")))?;
+            let max_tokens = std::env::var("WIRE_ANTHROPIC_MAX_TOKENS")
+                .ok()
+                .and_then(|v| v.parse::<u64>().ok());
+            let translation = crate::anthropic::to_messages(&value, max_tokens);
+            let body = EncodedJsonBody::encode(&translation.body)
+                .map_err(|e| ApiError::Stream(format!("failed to encode messages request: {e}")))?;
+            let mut headers = extra_headers;
+            insert_header(&mut headers, "anthropic-version", crate::anthropic::ANTHROPIC_VERSION);
+            return self
+                .stream_encoded_at(
+                    crate::anthropic::MESSAGES_PATH,
+                    body,
+                    headers,
+                    Compression::None,
+                    turn_state,
+                    Some(translation.context),
+                )
+                .await;
+        }
         let body = EncodedJsonBody::encode(&request)
             .map_err(|e| ApiError::Stream(format!("failed to encode responses request: {e}")))?;
 
@@ -127,16 +159,29 @@ impl<T: HttpTransport> ResponsesClient<T> {
         compression: Compression,
         turn_state: Option<Arc<OnceLock<String>>>,
     ) -> Result<ResponseStream, ApiError> {
+        self.stream_encoded_at("/responses", body, extra_headers, compression, turn_state, None)
+            .await
+    }
+
+    async fn stream_encoded_at(
+        &self,
+        path: &str,
+        body: EncodedJsonBody,
+        extra_headers: HeaderMap,
+        compression: Compression,
+        turn_state: Option<Arc<OnceLock<String>>>,
+        anthropic: Option<crate::anthropic::StreamContext>,
+    ) -> Result<ResponseStream, ApiError> {
         let request_compression = match compression {
             Compression::None => RequestCompression::None,
             Compression::Zstd => RequestCompression::Zstd,
         };
 
-        let stream_response = self
+        let mut stream_response = self
             .session
             .stream_encoded_json_with(
                 Method::POST,
-                "/responses",
+                path,
                 extra_headers,
                 Some(body),
                 |req| {
@@ -148,6 +193,9 @@ impl<T: HttpTransport> ResponsesClient<T> {
                 },
             )
             .await?;
+        if let Some(ctx) = anthropic {
+            stream_response.bytes = crate::anthropic::adapt_stream(stream_response.bytes, ctx);
+        }
 
         Ok(spawn_response_stream(
             stream_response,

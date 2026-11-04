@@ -4,6 +4,7 @@ pub(crate) mod common;
 pub(crate) mod endpoint;
 pub(crate) mod error;
 pub(crate) mod files;
+pub mod anthropic;
 mod guardian_assessment;
 pub(crate) mod images;
 pub(crate) mod provider;

@@ -322,7 +322,8 @@ fn proto_string_map(values: HashMap<String, RedactedString>) -> proto::StringMap
 #[cfg(test)]
 fn proto_wire_api(wire_api: WireApi) -> proto::WireApi {
     match wire_api {
-        WireApi::Responses => proto::WireApi::Responses,
+        // Wire fork: the remote thread config has no Anthropic value; it travels as Responses.
+        WireApi::Responses | WireApi::Anthropic => proto::WireApi::Responses,
     }
 }
 

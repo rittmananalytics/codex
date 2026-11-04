@@ -1,13 +1,25 @@
 # The Wire-forked Codex
 
 This branch (`wire/brand-0.166.0`, cut from upstream tag `rust-v0.166.0`) is
-OpenAI's Codex CLI with two changes, for the
+OpenAI's Codex CLI with three changes, for the
 Wire CLI's standalone install (rittmananalytics/wire#408):
 
 - the welcome screen draws the Wire wordmark and stepped mark instead of the
   Codex blossom (`codex-rs/tui/src/empty_state_animation/renderer.rs`);
 - the session header and status card read "Wire (Codex v...)" instead of
   "OpenAI Codex" (`codex-rs/tui/src/history_cell/session.rs`).
+
+- a native Anthropic provider (`wire_api = "anthropic"`): Codex's Responses
+  request is translated to the Messages API and Anthropic's event stream back
+  into Responses events (`codex-rs/codex-api/src/anthropic.rs`, with unit
+  tests), so Claude runs with tools and prompt caching and no proxy. Configure:
+
+  ```
+  -c 'model_providers.anthropic.base_url="https://api.anthropic.com/v1"'
+  -c 'model_providers.anthropic.wire_api="anthropic"'
+  -c 'model_providers.anthropic.env_http_headers={"x-api-key"="ANTHROPIC_API_KEY"}'
+  -c model_provider=anthropic -m claude-sonnet-5-5
+  ```
 
 Everything else is upstream Codex. The Wire build stamps the workspace
 version as `<wire version>+codex.0.166.0`, so `wire-agent --version` says what
