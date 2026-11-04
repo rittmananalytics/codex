@@ -1,6 +1,7 @@
 # The Wire-forked Codex
 
-This branch (`wire/brand`) is OpenAI's Codex CLI with two changes, for the
+This branch (`wire/brand-0.166.0`, cut from upstream tag `rust-v0.166.0`) is
+OpenAI's Codex CLI with two changes, for the
 Wire CLI's standalone install (rittmananalytics/wire#408):
 
 - the welcome screen draws the Wire wordmark and stepped mark instead of the
@@ -8,7 +9,11 @@ Wire CLI's standalone install (rittmananalytics/wire#408):
 - the session header and status card read "Wire (Codex v...)" instead of
   "OpenAI Codex" (`codex-rs/tui/src/history_cell/session.rs`).
 
-Everything else is upstream Codex. The binary keeps Codex's configuration,
+Everything else is upstream Codex. The Wire build stamps the workspace
+version as `<wire version>+codex.0.166.0`, so `wire-agent --version` says what
+it is. The Wire CLI holds the agent to API-key sign-in for OpenAI
+(`forced_login_method = "api"`); ChatGPT sign-in stays with OpenAI's own
+Codex until OpenAI confirms a modified client may use it. The binary keeps Codex's configuration,
 sign-in and sessions under `~/.codex`, so `codex login` or `OPENAI_API_KEY`
 serves it, and it reads the same `.codex/` hooks and agents in a repository.
 
@@ -25,7 +30,10 @@ as `wire-agent-<version>-<os>-<arch>.tar.gz` for the installer.
 
 ## Keeping up with upstream
 
-The change is small and deliberate: rebase `wire/brand` on an upstream tag
-when a Wire release needs a newer Codex, rather than tracking `main`. The
+One branch per upstream release tag: `wire/brand-<codex version>`, the Wire
+commits cherry-picked onto `rust-v<codex version>`. A Wire release that needs
+a newer Codex gets a new branch; old branches stay so a past build can be
+repeated. `wire/brand` (cut from main during the concept run) is kept for
+history. The
 upstream snapshot tests that name "OpenAI Codex" are expected to differ on
 this branch and are not run for the Wire build.
