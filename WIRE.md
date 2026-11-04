@@ -11,9 +11,11 @@ Wire CLI's standalone install (rittmananalytics/wire#408):
 
 Everything else is upstream Codex. The Wire build stamps the workspace
 version as `<wire version>+codex.0.166.0`, so `wire-agent --version` says what
-it is. The Wire CLI holds the agent to API-key sign-in for OpenAI
-(`forced_login_method = "api"`); ChatGPT sign-in stays with OpenAI's own
-Codex until OpenAI confirms a modified client may use it. The binary keeps Codex's configuration,
+it is. The Wire CLI runs the agent on an OpenAI API key, passed as
+`CODEX_API_KEY` (which `codex exec` prefers to a stored login); ChatGPT
+sign-in stays with OpenAI's own Codex until OpenAI confirms a modified client
+may use it. Do not set `forced_login_method = "api"` for this: Codex logs a
+stored ChatGPT session out when it sees it. The binary keeps Codex's configuration,
 sign-in and sessions under `~/.codex`, so `codex login` or `OPENAI_API_KEY`
 serves it, and it reads the same `.codex/` hooks and agents in a repository.
 
