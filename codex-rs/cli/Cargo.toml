@@ -29,6 +29,8 @@ workspace = true
 [dependencies]
 codex-utils-process = { workspace = true }
 anyhow = { workspace = true }
+flate2 = { workspace = true }
+tar = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
