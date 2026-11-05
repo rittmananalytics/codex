@@ -1,7 +1,7 @@
 # The Wire-forked Codex
 
 This branch (`wire/brand-0.166.0`, cut from upstream tag `rust-v0.166.0`) is
-OpenAI's Codex CLI with three changes, for the
+OpenAI's Codex CLI with four changes, for the
 Wire CLI's standalone install (rittmananalytics/wire#408):
 
 - the welcome screen draws the Wire wordmark and stepped mark instead of the
@@ -20,6 +20,14 @@ Wire CLI's standalone install (rittmananalytics/wire#408):
   -c 'model_providers.anthropic.env_http_headers={"x-api-key"="ANTHROPIC_API_KEY"}'
   -c model_provider=anthropic -m claude-sonnet-5-5
   ```
+
+- the Wire framework compiled in: `build.rs` in `codex-rs/cli` takes
+  `WIRE_FRAMEWORK_ARCHIVE` (a .tar.gz of Wire's built Codex plugin, which
+  Wire's `build-agent.sh` makes) and `wire-agent framework path` unpacks it
+  once per version under `$CODEX_HOME/framework/<version>/`
+  (`codex-rs/cli/src/wire_framework.rs`). The Wire CLI registers that folder as
+  a local plugin marketplace in the agent's home, so an engagement repository
+  needs no copy of the plugin. A build without the variable carries nothing.
 
 Everything else is upstream Codex. The Wire build stamps the workspace
 version as `<wire version>+codex.0.166.0`, so `wire-agent --version` says what
